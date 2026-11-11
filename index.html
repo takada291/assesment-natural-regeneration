@@ -188,12 +188,65 @@
             border-radius: 4px; border: 1px solid #dcedc8; line-height: 1.6; margin-bottom: 14px;
         }
 
-        /* 印刷用スタイル */
+        /* 印刷・PDF用スタイル（1ページ目に見出し＋空撮が収まるよう最適化） */
         @media print {
-            body { height: auto; overflow: visible; background: #fff; }
-            #controls button, .toolbar-row, .btn-analyze { display: none !important; }
-            #main-container { flex-direction: column; overflow: visible; }
-            .column { overflow: visible; height: auto; border-right: none; border-bottom: 1px solid #ccc; page-break-inside: avoid; }
+            @page { size: A4 portrait; margin: 10mm; }
+            body {
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+                background: #fff !important;
+            }
+            #controls {
+                padding: 4px 8px !important;
+                margin-bottom: 8px !important;
+                box-shadow: none !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            #controls button, .toolbar-row, .btn-analyze {
+                display: none !important;
+            }
+            #main-container {
+                display: block !important;
+                overflow: visible !important;
+            }
+            .column {
+                display: block !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                border-right: none !important;
+                border-bottom: none !important;
+                padding: 6px 0 !important;
+            }
+            /* 2カラム目（林内写真）と3カラム目（更新判断）は新しいページから開始 */
+            #col-ground, #col-judgment {
+                page-break-before: always !important;
+                break-before: page !important;
+            }
+            #aerialWrapper, #groundWrapper {
+                min-height: 0 !important;
+                height: auto !important;
+                max-height: 250px !important;
+                padding: 4px !important;
+                margin-bottom: 6px !important;
+            }
+            #aerialCanvas, #groundPreview {
+                width: auto !important;
+                max-width: 100% !important;
+                max-height: 240px !important;
+                margin: 0 auto !important;
+            }
+            .prompt-input {
+                height: 85px !important;
+                margin-bottom: 6px !important;
+            }
+            .result-area {
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+            }
         }
 
         @media (max-width: 1024px) {
@@ -207,7 +260,7 @@
 
 <!-- ヘッダー -->
 <div id="controls">
-    <span class="app-title">🌱 天然更新 v0.2</span>
+    <span class="app-title">🌱 天然更新 v0.3</span>
     
     <div class="control-group">
         <span>🔑 APIキー:</span>
