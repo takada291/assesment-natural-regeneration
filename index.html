@@ -53,11 +53,11 @@
         .btn-gray { background-color: #7f8c8d; }
         .btn-gray:hover { background-color: #636e72; }
         .btn-analyze {
-            background-color: #2980b9; padding: 10px; width: 100%; font-size: 14px; margin-bottom: 8px;
+            background-color: #2980b9; padding: 10px; width: 100%; font-size: 14px; margin-bottom: 8px; flex-shrink: 0;
         }
         .btn-analyze:hover { background-color: #1f618d; }
 
-        /* メイン3カラムレイアウト */
+        /* メイン3カラムレイアウト（空撮カラムを広めに配分） */
         #main-container {
             display: flex; flex-grow: 1; overflow: hidden; flex-direction: row;
         }
@@ -65,33 +65,46 @@
             display: flex; flex-direction: column; background: #fff;
             border-right: 1px solid #ccc; padding: 14px; box-sizing: border-box; overflow-y: auto;
         }
-        #col-aerial { flex: 38; }
-        #col-ground { flex: 34; }
-        #col-judgment { flex: 28; border-right: none; background: #fcfdfd; }
+        #col-aerial { flex: 44; }
+        #col-ground { flex: 31; }
+        #col-judgment { flex: 25; border-right: none; background: #fcfdfd; }
 
         .section-title {
             font-size: 15px; font-weight: bold; color: #27ae60; margin-bottom: 10px;
             border-bottom: 2px solid #27ae60; padding-bottom: 5px; display: flex;
-            justify-content: space-between; align-items: center;
+            justify-content: space-between; align-items: center; flex-shrink: 0;
         }
 
         /* 画像・Canvas表示枠 */
         .toolbar-row {
-            display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;
+            display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; flex-shrink: 0;
         }
         .canvas-wrapper {
-            position: relative; width: 100%; height: 280px; background: #eef2f5;
+            position: relative; width: 100%; background: #eef2f5;
             border: 2px dashed #bdc3c7; border-radius: 4px; margin-bottom: 8px;
             display: flex; justify-content: center; align-items: center; overflow: hidden;
+            box-sizing: border-box; flex-shrink: 0;
+        }
+        /* 空撮枠は横幅100%で大きく表示 */
+        #aerialWrapper {
+            min-height: 320px;
+            padding: 0;
         }
         #aerialCanvas {
-            max-width: 100%; max-height: 100%; cursor: crosshair; display: none;
+            width: 100%;
+            height: auto;
+            display: none;
+            cursor: crosshair;
+        }
+        /* 林内写真枠 */
+        #groundWrapper {
+            height: 280px;
         }
         #groundPreview {
             max-width: 100%; max-height: 100%; object-fit: contain; display: none;
         }
         .placeholder-text {
-            color: #7f8c8d; font-size: 12px; text-align: center; line-height: 1.6; padding: 15px;
+            color: #7f8c8d; font-size: 12px; text-align: center; line-height: 1.6; padding: 20px;
         }
         .status-badge {
             font-size: 11px; padding: 3px 8px; border-radius: 12px; background: #e8f5e9;
@@ -100,15 +113,15 @@
 
         /* プロンプトと結果エリア */
         .prompt-label {
-            font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; display: block;
+            font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; display: block; flex-shrink: 0;
         }
         .prompt-input {
-            width: 100%; height: 125px; resize: vertical; margin-bottom: 10px;
+            width: 100%; height: 115px; resize: vertical; margin-bottom: 10px;
             box-sizing: border-box; font-size: 12px; line-height: 1.4;
-            background-color: #fafafa; border: 1px solid #ccc; border-radius: 4px; padding: 8px;
+            background-color: #fafafa; border: 1px solid #ccc; border-radius: 4px; padding: 8px; flex-shrink: 0;
         }
         .result-area {
-            flex-grow: 1; min-height: 120px; padding: 10px; background: #f8f9fa;
+            flex-grow: 1; min-height: 140px; padding: 10px; background: #f8f9fa;
             border: 1px solid #e0e0e0; border-radius: 4px; overflow-y: auto;
             font-size: 12.5px; line-height: 1.5; color: #333;
         }
@@ -123,7 +136,7 @@
             padding: 14px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         .calc-item {
-            margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed #e0e0e0;
+            margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px dashed #e0e0e0;
         }
         .calc-item:last-child {
             margin-bottom: 0; padding-bottom: 0; border-bottom: none;
@@ -135,7 +148,7 @@
             display: flex; align-items: center; gap: 8px;
         }
         .calc-input {
-            width: 85px; font-size: 18px !important; font-weight: bold;
+            width: 90px; font-size: 18px !important; font-weight: bold;
             text-align: right; color: #1b5e20; background: #f9fbe7; border: 2px solid #81c784 !important;
         }
         .calc-unit {
@@ -179,8 +192,8 @@
         @media print {
             body { height: auto; overflow: visible; background: #fff; }
             #controls button, .toolbar-row, .btn-analyze { display: none !important; }
-            #main-container { flex-direction: row; overflow: visible; }
-            .column { overflow: visible; height: auto; }
+            #main-container { flex-direction: column; overflow: visible; }
+            .column { overflow: visible; height: auto; border-right: none; border-bottom: 1px solid #ccc; page-break-inside: avoid; }
         }
 
         @media (max-width: 1024px) {
@@ -194,7 +207,7 @@
 
 <!-- ヘッダー -->
 <div id="controls">
-    <span class="app-title">🌱 天然更新</span>
+    <span class="app-title">🌱 天然更新 v0.2</span>
     
     <div class="control-group">
         <span>🔑 APIキー:</span>
@@ -269,7 +282,7 @@
             <span style="font-size: 11px; color: #666;">※標尺（赤白ポール等）が写った林内の植生写真を選択</span>
         </div>
 
-        <div class="canvas-wrapper">
+        <div class="canvas-wrapper" id="groundWrapper">
             <div class="placeholder-text" id="groundPlaceholder">
                 🌲 「読み込み」から林内写真を選択してください<br>
                 <span style="font-size: 11px; color: #95a5a6;">（ポールを基準に木本植物の「高木性」と「低木性」の割合を判読します）</span>
@@ -335,6 +348,16 @@
                 </div>
                 <div class="calc-sub">※2mサイズ程度までの高木性1本当たりの基準面積</div>
             </div>
+
+            <!-- 項目4: 高木性の基準本数（手入力可） -->
+            <div class="calc-item">
+                <div class="calc-item-title">・高木性の基準本数</div>
+                <div class="calc-input-row">
+                    <input type="number" id="inputTargetTrees" class="calc-input" value="3000" min="0" max="50000" step="100" oninput="updateCalculation()">
+                    <span class="calc-unit">本 / ha</span>
+                </div>
+                <div class="calc-sub">※天然更新完了の判断基準となる成立本数（手修正可）</div>
+            </div>
         </div>
 
         <!-- 計算結果表示 -->
@@ -348,15 +371,7 @@
         </div>
 
         <!-- 計算内訳メモ -->
-        <div class="formula-note" id="formulaBreakdown">
-            <strong>【計算内訳】</strong><br>
-            ・100m²あたりの高木性被覆面積 (D):<br>
-             50 m² × 60% ＝ <strong>30.0 m² / 100m²</strong><br>
-            ・100m²あたりの高木性本数:<br>
-             30.0 m² ÷ 1 m²/本 ＝ <strong>30.0 本 / 100m²</strong><br>
-            ・1ha（10,000m²）あたり換算:<br>
-             30.0 本 × 100 ＝ <strong>3,000 本 / ha</strong>
-        </div>
+        <div class="formula-note" id="formulaBreakdown"></div>
     </div>
 
 </div>
@@ -457,6 +472,7 @@
                 aerialCanvas.width = img.width;
                 aerialCanvas.height = img.height;
                 aerialCanvas.style.display = 'block';
+                document.getElementById('aerialWrapper').style.minHeight = 'auto';
                 document.getElementById('aerialPlaceholder').style.display = 'none';
                 document.getElementById('btnAnalyzeAerial').disabled = false;
                 document.getElementById('btnResetPole').disabled = false;
@@ -562,7 +578,7 @@
         const pxPerMeter = polePixelDist / poleMeters;
         let boxSizePx = pxPerMeter * 10.0; // 10m四方のピクセルサイズ
 
-        // 万が一、画像サイズより10m枠が大きい場合は画像短辺に収める（警告表示）
+        // 画像短辺を超える場合は画像短辺に収める
         const maxSide = Math.min(aerialCanvas.width, aerialCanvas.height);
         if (boxSizePx > maxSide) {
             boxSizePx = maxSide;
@@ -679,7 +695,6 @@
     // AI判読の実行（空撮・林内）
     // ==========================================
     function extractJsonNumber(text, keyName) {
-        // JSON形式 {"keyName": 50} から数値を抽出
         const regex = new RegExp(`"${keyName}"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)`, 'i');
         const match = text.match(regex);
         if (match && match[1]) {
@@ -796,12 +811,13 @@
     }
 
     // ==========================================
-    // 3. 更新判断の計算ロジック
+    // 3. 更新判断の計算ロジック（基準本数の手入力対応）
     // ==========================================
     function updateCalculation() {
         const B = parseFloat(document.getElementById('inputWoodyCover').value) || 0; // m2 / 100m2
         const C = parseFloat(document.getElementById('inputTallRatio').value) || 0;  // %
         const A = parseFloat(document.getElementById('inputCrownArea').value) || 1;  // m2 / 本
+        const targetTrees = parseInt(document.getElementById('inputTargetTrees').value, 10) || 0; // 基準本数 (本/ha)
 
         // 100m2あたりの高木性被覆面積 (D)
         const D = B * (C / 100.0);
@@ -813,12 +829,13 @@
         document.getElementById('outputTreesPerHa').innerText = treesPerHa.toLocaleString();
 
         const badge = document.getElementById('judgeBadge');
-        if (treesPerHa >= 3000) {
+        const formattedTarget = targetTrees.toLocaleString();
+        if (treesPerHa >= targetTrees) {
             badge.className = "judge-badge";
-            badge.innerText = "✅ 更新基準達成（3,000本/ha以上）";
+            badge.innerText = `✅ 更新基準達成（${formattedTarget}本/ha以上）`;
         } else {
             badge.className = "judge-badge ng";
-            badge.innerText = "⚠️ 基準未満（3,000本/ha未満）";
+            badge.innerText = `⚠️ 基準未満（${formattedTarget}本/ha未満）`;
         }
 
         document.getElementById('formulaBreakdown').innerHTML = `
