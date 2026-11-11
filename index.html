@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>天然更新</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- GA4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-WXBP6CPKLP"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-WXBP6CPKLP');
+    </script>
+
+    <style>
+        body {
+            margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            background: #f4f7f6; overflow: hidden; color: #333;
+        }
+
+        /* ヘッダーコントロール */
+        #controls {
+            padding: 8px 16px; background: #fff; display: flex; gap: 12px;
+            align-items: center; z-index: 1000; border-bottom: 2px solid #27ae60;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08); flex-shrink: 0; flex-wrap: wrap;
+        }
+        .app-title {
+            font-weight: bold; font-size: 18px; color: #27ae60; margin-right: 8px; white-space: nowrap;
+        }
+        .control-group {
+            display: flex; align-items: center; gap: 6px; background: #f8f9fa;
+            padding: 4px 10px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px; font-weight: bold;
+        }
+        input[type="text"], input[type="password"], input[type="number"] {
+            padding: 5px 8px; font-size: 13px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit;
+        }
+        button {
+            padding: 6px 12px; font-size: 13px; background-color: #007bff; color: white;
+            border: none; cursor: pointer; border-radius: 4px; font-weight: bold; white-space: nowrap;
+            transition: background-color 0.15s;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; }
+        .btn-green { background-color: #27ae60; }
+        .btn-green:hover { background-color: #219653; }
+        .btn-orange { background-color: #e67e22; }
+        .btn-orange:hover { background-color: #d35400; }
+        .btn-gray { background-color: #7f8c8d; }
+        .btn-gray:hover { background-color: #636e72; }
+        .btn-analyze {
+            background-color: #2980b9; padding: 10px; width: 100%; font-size: 14px; margin-bottom: 8px;
+        }
+        .btn-analyze:hover { background-color: #1f618d; }
+
+        /* メイン3カラムレイアウト */
+        #main-container {
+            display: flex; flex-grow: 1; overflow: hidden; flex-direction: row;
+        }
+        .column {
+            display: flex; flex-direction: column; background: #fff;
+            border-right: 1px solid #ccc; padding: 14px; box-sizing: border-box; overflow-y: auto;
+        }
+        #col-aerial { flex: 38; }
+        #col-ground { flex: 34; }
+        #col-judgment { flex: 28; border-right: none; background: #fcfdfd; }
+
+        .section-title {
+            font-size: 15px; font-weight: bold; color: #27ae60; margin-bottom: 10px;
+            border-bottom: 2px solid #27ae60; padding-bottom: 5px; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+
+        /* 画像・Canvas表示枠 */
+        .toolbar-row {
+            display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;
+        }
+        .canvas-wrapper {
+            position: relative; width: 100%; height: 280px; background: #eef2f5;
+            border: 2px dashed #bdc3c7; border-radius: 4px; margin-bottom: 8px;
+            display: flex; justify-content: center; align-items: center; overflow: hidden;
+        }
+        #aerialCanvas {
+            max-width: 100%; max-height: 100%; cursor: crosshair; display: none;
+        }
+        #groundPreview {
+            max-width: 100%; max-height: 100%; object-fit: contain; display: none;
+        }
+        .placeholder-text {
+            color: #7f8c8d; font-size: 12px; text-align: center; line-height: 1.6; padding: 15px;
+        }
+        .status-badge {
+            font-size: 11px; padding: 3px 8px; border-radius: 12px; background: #e8f5e9;
+            color: #2e7d32; font-weight: bold; border: 1px solid #c8e6c9;
+        }
+
+        /* プロンプトと結果エリア */
+        .prompt-label {
+            font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; display: block;
+        }
+        .prompt-input {
+            width: 100%; height: 125px; resize: vertical; margin-bottom: 10px;
+            box-sizing: border-box; font-size: 12px; line-height: 1.4;
+            background-color: #fafafa; border: 1px solid #ccc; border-radius: 4px; padding: 8px;
+        }
+        .result-area {
+            flex-grow: 1; min-height: 120px; padding: 10px; background: #f8f9fa;
+            border: 1px solid #e0e0e0; border-radius: 4px; overflow-y: auto;
+            font-size: 12.5px; line-height: 1.5; color: #333;
+        }
+        .model-badge {
+            display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: bold;
+            color: #fff; background-color: #8e44ad; border-radius: 4px; margin-bottom: 6px;
+        }
+
+        /* 右カラム：更新判断カード */
+        .calc-card {
+            background: #fff; border: 1px solid #dce4ec; border-radius: 6px;
+            padding: 14px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .calc-item {
+            margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed #e0e0e0;
+        }
+        .calc-item:last-child {
+            margin-bottom: 0; padding-bottom: 0; border-bottom: none;
+        }
+        .calc-item-title {
+            font-size: 13px; font-weight: bold; color: #2c3e50; margin-bottom: 6px;
+        }
+        .calc-input-row {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .calc-input {
+            width: 85px; font-size: 18px !important; font-weight: bold;
+            text-align: right; color: #1b5e20; background: #f9fbe7; border: 2px solid #81c784 !important;
+        }
+        .calc-unit {
+            font-size: 14px; font-weight: bold; color: #555;
+        }
+        .calc-sub {
+            font-size: 11px; color: #7f8c8d; margin-top: 4px;
+        }
+
+        /* 最終結果ボックス */
+        .final-result-box {
+            background: #e8f5e9; border: 2px solid #27ae60; border-radius: 8px;
+            padding: 16px; text-align: center; margin-bottom: 14px;
+        }
+        .final-label {
+            font-size: 14px; font-weight: bold; color: #1b5e20; margin-bottom: 6px;
+        }
+        .final-value-row {
+            display: flex; justify-content: center; align-items: baseline; gap: 6px; margin-bottom: 8px;
+        }
+        .final-number {
+            font-size: 34px; font-weight: bold; color: #1b5e20;
+            background: #fff; padding: 2px 14px; border-radius: 6px; border: 2px solid #2e7d32;
+        }
+        .final-unit {
+            font-size: 16px; font-weight: bold; color: #1b5e20;
+        }
+        .judge-badge {
+            display: inline-block; padding: 6px 14px; border-radius: 20px;
+            font-size: 13px; font-weight: bold; color: #fff; background: #27ae60;
+        }
+        .judge-badge.ng {
+            background: #e67e22;
+        }
+        .formula-note {
+            font-size: 11.5px; color: #555; background: #f1f8e9; padding: 10px;
+            border-radius: 4px; border: 1px solid #dcedc8; line-height: 1.6; margin-bottom: 14px;
+        }
+
+        /* 印刷用スタイル */
+        @media print {
+            body { height: auto; overflow: visible; background: #fff; }
+            #controls button, .toolbar-row, .btn-analyze { display: none !important; }
+            #main-container { flex-direction: row; overflow: visible; }
+            .column { overflow: visible; height: auto; }
+        }
+
+        @media (max-width: 1024px) {
+            body { height: auto; overflow-y: auto; }
+            #main-container { flex-direction: column; overflow: visible; }
+            .column { border-right: none; border-bottom: 2px solid #ccc; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div id="controls">
+    <span class="app-title">🌱 天然更新</span>
+    
+    <div class="control-group">
+        <span>🔑 APIキー:</span>
+        <input type="password" id="geminiApiKey" placeholder="Gemini APIキーを入力" style="width: 160px;">
+    </div>
+
+    <div class="control-group">
+        <span>📏 空撮ポールの実長:</span>
+        <input type="number" id="poleLengthMeters" value="2.0" step="0.1" min="0.5" max="10" style="width: 55px; text-align: right;" onchange="recalcScaleAndRedraw()">
+        <span>m</span>
+    </div>
+
+    <button class="btn-gray" style="margin-left: auto;" onclick="window.print()">🖨️ 画面印刷 / PDF保存</button>
+</div>
+
+<!-- メイン3カラム -->
+<div id="main-container">
+
+    <!-- 1. 左カラム：ドローン空撮 -->
+    <div id="col-aerial" class="column">
+        <div class="section-title">
+            <span>1. ドローン空撮</span>
+            <span id="aerialStatusBadge" class="status-badge">未読み込み</span>
+        </div>
+
+        <div class="toolbar-row">
+            <button class="btn-green" onclick="document.getElementById('aerialFileInput').click()">📂 読み込み</button>
+            <input type="file" id="aerialFileInput" accept="image/*" style="display: none;" onchange="handleAerialUpload(event)">
+            <button class="btn-orange" onclick="resetPolePoints()" id="btnResetPole" disabled>🔄 ポール再指定</button>
+            <span style="font-size: 11px; color: #666;">※ポールの両端をクリック → 10m四方枠を表示（ドラッグで移動可）</span>
+        </div>
+
+        <div class="canvas-wrapper" id="aerialWrapper">
+            <div class="placeholder-text" id="aerialPlaceholder">
+                🛩️ 「読み込み」からドローン空撮写真を選択してください<br>
+                <span style="font-size: 11px; color: #95a5a6;">（読み込んだ後、地上のポールの両端2点をクリックすると10m四方の枠が表示されます）</span>
+            </div>
+            <canvas id="aerialCanvas"></canvas>
+        </div>
+
+        <button id="btnAnalyzeAerial" class="btn-analyze" onclick="analyzeAerial()" disabled>🤖 AI判読（10m四方枠内の木本被ふくを推定）</button>
+
+        <label class="prompt-label">プロンプト（当地の植生等に合わせて手修正可）:</label>
+        <textarea id="aerialPrompt" class="prompt-input">この画像は伐採跡地を真上から空撮し、10m×10m（面積100m2）の範囲を切り抜いたものです。
+地面・枯れ草・ササ・シダ類・草本を除き、「木本植物（高木・低木の稚樹や幼樹）」の樹冠が覆っている面積（m2 / 100m2あたり、すなわち植被率％）を推定してください。
+
+【当地の植生メモ（手修正可）】
+・スギ皆伐跡地、周辺の広葉樹（コナラ、カエデ類、ミズキ、キイチゴ類など）が侵入・更新中。
+
+【出力形式】
+1. 空撮画像から読み取れる木本植物の分布状況と草本との判別根拠を簡潔に記述してください。
+2. 最後に必ず以下のJSON形式を1行で出力してください。
+{"woody_cover_m2": 50}</textarea>
+
+        <div id="aerialResultArea" class="result-area">
+            <div style="color: #7f8c8d; text-align: center; margin-top: 25px; font-size: 12px;">
+                空撮写真を読み込み、10m枠を配置して「AI判読」を押してください。
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 中央カラム：林内写真 -->
+    <div id="col-ground" class="column">
+        <div class="section-title">
+            <span>2. 林内写真</span>
+            <span id="groundStatusBadge" class="status-badge">未読み込み</span>
+        </div>
+
+        <div class="toolbar-row">
+            <button class="btn-green" onclick="document.getElementById('groundFileInput').click()">📂 読み込み</button>
+            <input type="file" id="groundFileInput" accept="image/*" style="display: none;" onchange="handleGroundUpload(event)">
+            <span style="font-size: 11px; color: #666;">※標尺（赤白ポール等）が写った林内の植生写真を選択</span>
+        </div>
+
+        <div class="canvas-wrapper">
+            <div class="placeholder-text" id="groundPlaceholder">
+                🌲 「読み込み」から林内写真を選択してください<br>
+                <span style="font-size: 11px; color: #95a5a6;">（ポールを基準に木本植物の「高木性」と「低木性」の割合を判読します）</span>
+            </div>
+            <img id="groundPreview" alt="林内写真プレビュー">
+        </div>
+
+        <button id="btnAnalyzeGround" class="btn-analyze" onclick="analyzeGround()" disabled>🤖 AI判読（林内写真から高木性の割合を推定）</button>
+
+        <label class="prompt-label">プロンプト（当地の植生等に合わせて手修正可）:</label>
+        <textarea id="groundPrompt" class="prompt-input">この林内写真には基準尺となる測量ポール（赤白2m）が写っています。
+下層のシダ類や草本を除いた「高さ0.3m以上の木本植物全体」のうち、将来高木になる『高木性樹種』が占める割合（％）を推定してください（残りは低木性樹種とします）。
+
+【当地の植生メモ（手修正可）】
+・高木性樹種の例：スギ、コナラ、ミズナラ、カエデ類、ホオノキ、ミズキ、ウワミズザクラ等
+・低木性樹種の例：キイチゴ類、タラノキ、ヒメアオキ、クロモジ、タニウツギ等
+
+【出力形式】
+1. 写真内で確認できる主な樹種（葉の形状や樹形の特徴）、ポールと比較した樹高、高木性と低木性の優占状況を簡潔に記述してください。
+2. 最後に必ず以下のJSON形式を1行で出力してください。
+{"tall_tree_percent": 60}</textarea>
+
+        <div id="groundResultArea" class="result-area">
+            <div style="color: #7f8c8d; text-align: center; margin-top: 25px; font-size: 12px;">
+                林内写真を読み込んで「AI判読」を押してください。
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 右カラム：更新判断 -->
+    <div id="col-judgment" class="column">
+        <div class="section-title">
+            <span>3. 更新判断</span>
+        </div>
+
+        <div class="calc-card">
+            <!-- 項目1: 空撮から木本被ふく -->
+            <div class="calc-item">
+                <div class="calc-item-title">・空撮から木本被ふく (B)</div>
+                <div class="calc-input-row">
+                    <input type="number" id="inputWoodyCover" class="calc-input" value="50" min="0" max="100" step="1" oninput="updateCalculation()">
+                    <span class="calc-unit">m² / 100m²</span>
+                </div>
+                <div class="calc-sub">※AI判読結果が自動反映されます（手修正可）</div>
+            </div>
+
+            <!-- 項目2: 林内から高木性 -->
+            <div class="calc-item">
+                <div class="calc-item-title">・林内から高木性 (C)</div>
+                <div class="calc-input-row">
+                    <input type="number" id="inputTallRatio" class="calc-input" value="60" min="0" max="100" step="1" oninput="updateCalculation()">
+                    <span class="calc-unit">%</span>
+                </div>
+                <div class="calc-sub">※木本全体に占める高木性樹種の割合（手修正可）</div>
+            </div>
+
+            <!-- 項目3: 1本当りの樹冠面積 -->
+            <div class="calc-item">
+                <div class="calc-item-title">・1本当りの樹冠面積 (A)</div>
+                <div class="calc-input-row">
+                    <input type="number" id="inputCrownArea" class="calc-input" value="1" min="0.1" max="20" step="0.1" oninput="updateCalculation()">
+                    <span class="calc-unit">m² / 本</span>
+                </div>
+                <div class="calc-sub">※2mサイズ程度までの高木性1本当たりの基準面積</div>
+            </div>
+        </div>
+
+        <!-- 計算結果表示 -->
+        <div class="final-result-box">
+            <div class="final-label">推定成立本数（高木性）</div>
+            <div class="final-value-row">
+                <span id="outputTreesPerHa" class="final-number">3000</span>
+                <span class="final-unit">本 / ha</span>
+            </div>
+            <div id="judgeBadge" class="judge-badge">✅ 更新基準達成（3,000本/ha以上）</div>
+        </div>
+
+        <!-- 計算内訳メモ -->
+        <div class="formula-note" id="formulaBreakdown">
+            <strong>【計算内訳】</strong><br>
+            ・100m²あたりの高木性被覆面積 (D):<br>
+             50 m² × 60% ＝ <strong>30.0 m² / 100m²</strong><br>
+            ・100m²あたりの高木性本数:<br>
+             30.0 m² ÷ 1 m²/本 ＝ <strong>30.0 本 / 100m²</strong><br>
+            ・1ha（10,000m²）あたり換算:<br>
+             30.0 本 × 100 ＝ <strong>3,000 本 / ha</strong>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ==========================================
+    // 初期設定・APIキー読み込み
+    // ==========================================
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedKey = localStorage.getItem('gemini_api_key_forest');
+        if (savedKey) {
+            document.getElementById('geminiApiKey').value = savedKey;
+        }
+        updateCalculation();
+    });
+
+    // ==========================================
+    // Gemini API 呼び出し共通基盤 (フォールバック付き)
+    // ==========================================
+    const MODEL_CANDIDATES = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-2.5-flash"];
+
+    async function fetchWithTimeout(url, options, timeoutMs = 45000) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(url, { ...options, signal: controller.signal });
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+    async function callGeminiWithFallback(apiKey, basePayload, onStatusUpdate) {
+        let lastErrorMsg = "";
+        for (const modelName of MODEL_CANDIDATES) {
+            if (onStatusUpdate) onStatusUpdate(modelName);
+            const isGemini3 = modelName.startsWith("gemini-3");
+            const payloadWithThinking = JSON.parse(JSON.stringify(basePayload));
+            if (isGemini3) {
+                payloadWithThinking.generationConfig = {
+                    ...(payloadWithThinking.generationConfig || {}),
+                    thinkingConfig: { thinkingLevel: "LOW" }
+                };
+            }
+            try {
+                let response = await fetchWithTimeout(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+                    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadWithThinking) },
+                    45000
+                );
+                let data = await response.json();
+                if (data.error && response.status === 400 && isGemini3) {
+                    response = await fetchWithTimeout(
+                        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+                        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(basePayload) },
+                        45000
+                    );
+                    data = await response.json();
+                }
+                if (data.error) {
+                    lastErrorMsg = `[${modelName}] ${data.error.message}`;
+                    continue;
+                }
+                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                    const parts = data.candidates[0].content.parts || [];
+                    const answerPart = parts.find(p => typeof p.text === 'string' && !p.thought) || parts.find(p => typeof p.text === 'string');
+                    if (answerPart) {
+                        return { text: answerPart.text, usedModel: modelName };
+                    }
+                }
+            } catch (err) {
+                lastErrorMsg = `[${modelName}] ${err.name === 'AbortError' ? 'タイムアウト(45秒超過)' : err.message}`;
+            }
+        }
+        throw new Error(lastErrorMsg || "AIモデルでの通信に失敗しました。APIキーをご確認ください。");
+    }
+
+    // ==========================================
+    // 1. ドローン空撮 Canvas・10m四方枠の操作ロジック
+    // ==========================================
+    const aerialCanvas = document.getElementById('aerialCanvas');
+    const aerialCtx = aerialCanvas.getContext('2d');
+    let aerialImg = null;
+
+    // ポール端点と10m枠の状態管理（すべて元画像のピクセル座標系で保持）
+    let polePoints = []; // [{x, y}, {x, y}]
+    let box10m = null;   // {x, y, size} ※x,yは左上座標、sizeは10m相当のピクセル数
+    let isDraggingBox = false;
+    let dragOffset = { x: 0, y: 0 };
+
+    function handleAerialUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                aerialImg = img;
+                aerialCanvas.width = img.width;
+                aerialCanvas.height = img.height;
+                aerialCanvas.style.display = 'block';
+                document.getElementById('aerialPlaceholder').style.display = 'none';
+                document.getElementById('btnAnalyzeAerial').disabled = false;
+                document.getElementById('btnResetPole').disabled = false;
+                resetPolePoints();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function resetPolePoints() {
+        polePoints = [];
+        box10m = null;
+        isDraggingBox = false;
+        updateAerialStatusBadge();
+        drawAerialCanvas();
+    }
+
+    function updateAerialStatusBadge() {
+        const badge = document.getElementById('aerialStatusBadge');
+        if (!aerialImg) {
+            badge.innerText = "未読み込み";
+        } else if (polePoints.length === 0) {
+            badge.innerText = "① ポール始点をクリック";
+        } else if (polePoints.length === 1) {
+            badge.innerText = "② ポール終点をクリック";
+        } else if (box10m) {
+            badge.innerText = "✅ 10m枠表示中 (ドラッグで移動可)";
+        }
+    }
+
+    // クライアント座標から元画像ピクセル座標への変換
+    function getCanvasCoordinates(e) {
+        const rect = aerialCanvas.getBoundingClientRect();
+        const scaleX = aerialCanvas.width / rect.width;
+        const scaleY = aerialCanvas.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
+
+    aerialCanvas.addEventListener('mousedown', (e) => {
+        if (!aerialImg) return;
+        const pt = getCanvasCoordinates(e);
+
+        if (polePoints.length < 2) {
+            polePoints.push(pt);
+            if (polePoints.length === 2) {
+                calculate10mBox();
+            }
+            updateAerialStatusBadge();
+            drawAerialCanvas();
+        } else if (box10m) {
+            // 10m枠内をクリックしたらドラッグ開始、枠外をクリックしたらその中心へ枠をジャンプ
+            if (pt.x >= box10m.x && pt.x <= box10m.x + box10m.size &&
+                pt.y >= box10m.y && pt.y <= box10m.y + box10m.size) {
+                isDraggingBox = true;
+                dragOffset.x = pt.x - box10m.x;
+                dragOffset.y = pt.y - box10m.y;
+            } else {
+                box10m.x = Math.max(0, Math.min(aerialCanvas.width - box10m.size, pt.x - box10m.size / 2));
+                box10m.y = Math.max(0, Math.min(aerialCanvas.height - box10m.size, pt.y - box10m.size / 2));
+                isDraggingBox = true;
+                dragOffset.x = box10m.size / 2;
+                dragOffset.y = box10m.size / 2;
+                drawAerialCanvas();
+            }
+        }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDraggingBox || !box10m || !aerialImg) return;
+        const pt = getCanvasCoordinates(e);
+        box10m.x = Math.max(0, Math.min(aerialCanvas.width - box10m.size, pt.x - dragOffset.x));
+        box10m.y = Math.max(0, Math.min(aerialCanvas.height - box10m.size, pt.y - dragOffset.y));
+        drawAerialCanvas();
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDraggingBox = false;
+    });
+
+    function recalcScaleAndRedraw() {
+        if (polePoints.length === 2) {
+            calculate10mBox();
+            drawAerialCanvas();
+        }
+    }
+
+    function calculate10mBox() {
+        const dx = polePoints[1].x - polePoints[0].x;
+        const dy = polePoints[1].y - polePoints[0].y;
+        const polePixelDist = Math.hypot(dx, dy);
+        const poleMeters = parseFloat(document.getElementById('poleLengthMeters').value) || 2.0;
+
+        if (polePixelDist < 3) {
+            alert("ポールの2点が近すぎます。もう一度指定してください。");
+            resetPolePoints();
+            return;
+        }
+
+        const pxPerMeter = polePixelDist / poleMeters;
+        let boxSizePx = pxPerMeter * 10.0; // 10m四方のピクセルサイズ
+
+        // 万が一、画像サイズより10m枠が大きい場合は画像短辺に収める（警告表示）
+        const maxSide = Math.min(aerialCanvas.width, aerialCanvas.height);
+        if (boxSizePx > maxSide) {
+            boxSizePx = maxSide;
+        }
+
+        // ポールの中点付近を中心に10m枠を初期配置
+        const centerX = (polePoints[0].x + polePoints[1].x) / 2;
+        const centerY = (polePoints[0].y + polePoints[1].y) / 2;
+
+        box10m = {
+            size: boxSizePx,
+            x: Math.max(0, Math.min(aerialCanvas.width - boxSizePx, centerX - boxSizePx / 2)),
+            y: Math.max(0, Math.min(aerialCanvas.height - boxSizePx, centerY - boxSizePx / 2))
+        };
+    }
+
+    function drawAerialCanvas() {
+        if (!aerialImg) return;
+        aerialCtx.clearRect(0, 0, aerialCanvas.width, aerialCanvas.height);
+        aerialCtx.drawImage(aerialImg, 0, 0);
+
+        const lineScale = Math.max(1, aerialCanvas.width / 600);
+
+        // 10m四方枠の描画
+        if (box10m) {
+            aerialCtx.save();
+            aerialCtx.fillStyle = 'rgba(231, 76, 60, 0.22)';
+            aerialCtx.fillRect(box10m.x, box10m.y, box10m.size, box10m.size);
+
+            aerialCtx.strokeStyle = '#ffeb3b';
+            aerialCtx.lineWidth = 3 * lineScale;
+            aerialCtx.strokeRect(box10m.x, box10m.y, box10m.size, box10m.size);
+
+            // ラベル描画
+            const fontSize = Math.round(16 * lineScale);
+            aerialCtx.font = `bold ${fontSize}px sans-serif`;
+            aerialCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            aerialCtx.fillRect(box10m.x, box10m.y, 130 * lineScale, 26 * lineScale);
+            aerialCtx.fillStyle = '#ffeb3b';
+            aerialCtx.fillText('10m × 10m (100m²)', box10m.x + 6 * lineScale, box10m.y + 19 * lineScale);
+            aerialCtx.restore();
+        }
+
+        // ポールの点・線の描画
+        if (polePoints.length > 0) {
+            aerialCtx.save();
+            if (polePoints.length === 2) {
+                aerialCtx.beginPath();
+                aerialCtx.moveTo(polePoints[0].x, polePoints[0].y);
+                aerialCtx.lineTo(polePoints[1].x, polePoints[1].y);
+                aerialCtx.strokeStyle = '#00e5ff';
+                aerialCtx.lineWidth = 3 * lineScale;
+                aerialCtx.stroke();
+            }
+            polePoints.forEach((pt) => {
+                aerialCtx.beginPath();
+                aerialCtx.arc(pt.x, pt.y, 6 * lineScale, 0, Math.PI * 2);
+                aerialCtx.fillStyle = '#ff1744';
+                aerialCtx.fill();
+                aerialCtx.strokeStyle = '#ffffff';
+                aerialCtx.lineWidth = 2 * lineScale;
+                aerialCtx.stroke();
+            });
+            aerialCtx.restore();
+        }
+    }
+
+    // 10m枠内（未指定時は全体）をBase64として切り出す
+    function getCroppedAerialBase64() {
+        const tempCanvas = document.createElement('canvas');
+        const maxOutputSize = 1024;
+        if (box10m) {
+            const outSize = Math.min(maxOutputSize, Math.round(box10m.size));
+            tempCanvas.width = outSize;
+            tempCanvas.height = outSize;
+            const ctx = tempCanvas.getContext('2d');
+            ctx.drawImage(
+                aerialImg,
+                box10m.x, box10m.y, box10m.size, box10m.size,
+                0, 0, outSize, outSize
+            );
+        } else {
+            const scale = aerialImg.width > maxOutputSize ? (maxOutputSize / aerialImg.width) : 1;
+            tempCanvas.width = Math.round(aerialImg.width * scale);
+            tempCanvas.height = Math.round(aerialImg.height * scale);
+            const ctx = tempCanvas.getContext('2d');
+            ctx.drawImage(aerialImg, 0, 0, tempCanvas.width, tempCanvas.height);
+        }
+        return tempCanvas.toDataURL('image/jpeg', 0.88).split(',')[1];
+    }
+
+    // ==========================================
+    // 2. 林内写真の読み込み処理
+    // ==========================================
+    let groundBase64 = "";
+
+    function handleGroundUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('groundPreview');
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            document.getElementById('groundPlaceholder').style.display = 'none';
+            document.getElementById('groundStatusBadge').innerText = "✅ 読み込み完了";
+            document.getElementById('btnAnalyzeGround').disabled = false;
+            groundBase64 = e.target.result.split(',')[1];
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ==========================================
+    // AI判読の実行（空撮・林内）
+    // ==========================================
+    function extractJsonNumber(text, keyName) {
+        // JSON形式 {"keyName": 50} から数値を抽出
+        const regex = new RegExp(`"${keyName}"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)`, 'i');
+        const match = text.match(regex);
+        if (match && match[1]) {
+            return parseFloat(match[1]);
+        }
+        return null;
+    }
+
+    async function analyzeAerial() {
+        const apiKey = document.getElementById('geminiApiKey').value.trim();
+        if (!apiKey) { alert("画面上部にGemini APIキーを入力してください。"); return; }
+        if (!aerialImg) { alert("空撮写真を読み込んでください。"); return; }
+
+        localStorage.setItem('gemini_api_key_forest', apiKey);
+
+        const promptText = document.getElementById('aerialPrompt').value.trim();
+        const resultArea = document.getElementById('aerialResultArea');
+        const btn = document.getElementById('btnAnalyzeAerial');
+        const croppedBase64 = getCroppedAerialBase64();
+
+        btn.disabled = true;
+        let sec = 0;
+        let activeModel = "準備中";
+        const updateTimer = () => {
+            resultArea.innerHTML = `<div style="text-align:center; padding:15px; font-weight:bold; color:#2980b9;">
+                🤖 [${activeModel}] で空撮10m枠内を解析中... (${sec}秒)
+            </div>`;
+        };
+        updateTimer();
+        const timerId = setInterval(() => { sec++; updateTimer(); }, 1000);
+
+        try {
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: promptText },
+                        { inlineData: { mimeType: "image/jpeg", data: croppedBase64 } }
+                    ]
+                }]
+            };
+            const res = await callGeminiWithFallback(apiKey, payload, (m) => { activeModel = m; updateTimer(); });
+            const extractedVal = extractJsonNumber(res.text, "woody_cover_m2");
+
+            if (extractedVal !== null) {
+                document.getElementById('inputWoodyCover').value = Math.round(extractedVal);
+                updateCalculation();
+            }
+
+            const cleanMarkdown = res.text.replace(/\{[\s\S]*?"woody_cover_m2"[\s\S]*?\}/g, '').trim();
+            resultArea.innerHTML = `
+                <span class="model-badge">使用モデル: ${res.usedModel}</span>
+                ${extractedVal !== null ? `<div style="font-weight:bold; color:#1b5e20; margin-bottom:6px;">👉 木本被ふく推定値: ${Math.round(extractedVal)} m² / 100m²（右欄へ反映済）</div>` : ''}
+                ${marked.parse(cleanMarkdown)}
+            `;
+        } catch (err) {
+            resultArea.innerHTML = `<div style="color:#e74c3c; font-weight:bold;">エラー: ${err.message}</div>`;
+        } finally {
+            clearInterval(timerId);
+            btn.disabled = false;
+        }
+    }
+
+    async function analyzeGround() {
+        const apiKey = document.getElementById('geminiApiKey').value.trim();
+        if (!apiKey) { alert("画面上部にGemini APIキーを入力してください。"); return; }
+        if (!groundBase64) { alert("林内写真を読み込んでください。"); return; }
+
+        localStorage.setItem('gemini_api_key_forest', apiKey);
+
+        const promptText = document.getElementById('groundPrompt').value.trim();
+        const resultArea = document.getElementById('groundResultArea');
+        const btn = document.getElementById('btnAnalyzeGround');
+
+        btn.disabled = true;
+        let sec = 0;
+        let activeModel = "準備中";
+        const updateTimer = () => {
+            resultArea.innerHTML = `<div style="text-align:center; padding:15px; font-weight:bold; color:#2980b9;">
+                🤖 [${activeModel}] で林内写真を解析中... (${sec}秒)
+            </div>`;
+        };
+        updateTimer();
+        const timerId = setInterval(() => { sec++; updateTimer(); }, 1000);
+
+        try {
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: promptText },
+                        { inlineData: { mimeType: "image/jpeg", data: groundBase64 } }
+                    ]
+                }]
+            };
+            const res = await callGeminiWithFallback(apiKey, payload, (m) => { activeModel = m; updateTimer(); });
+            const extractedVal = extractJsonNumber(res.text, "tall_tree_percent");
+
+            if (extractedVal !== null) {
+                document.getElementById('inputTallRatio').value = Math.round(extractedVal);
+                updateCalculation();
+            }
+
+            const cleanMarkdown = res.text.replace(/\{[\s\S]*?"tall_tree_percent"[\s\S]*?\}/g, '').trim();
+            resultArea.innerHTML = `
+                <span class="model-badge">使用モデル: ${res.usedModel}</span>
+                ${extractedVal !== null ? `<div style="font-weight:bold; color:#1b5e20; margin-bottom:6px;">👉 高木性割合の推定値: ${Math.round(extractedVal)} %（右欄へ反映済）</div>` : ''}
+                ${marked.parse(cleanMarkdown)}
+            `;
+        } catch (err) {
+            resultArea.innerHTML = `<div style="color:#e74c3c; font-weight:bold;">エラー: ${err.message}</div>`;
+        } finally {
+            clearInterval(timerId);
+            btn.disabled = false;
+        }
+    }
+
+    // ==========================================
+    // 3. 更新判断の計算ロジック
+    // ==========================================
+    function updateCalculation() {
+        const B = parseFloat(document.getElementById('inputWoodyCover').value) || 0; // m2 / 100m2
+        const C = parseFloat(document.getElementById('inputTallRatio').value) || 0;  // %
+        const A = parseFloat(document.getElementById('inputCrownArea').value) || 1;  // m2 / 本
+
+        // 100m2あたりの高木性被覆面積 (D)
+        const D = B * (C / 100.0);
+        // 100m2あたりの高木性本数
+        const treesPer100m2 = A > 0 ? (D / A) : 0;
+        // 1ha (10,000m2) あたりの高木性本数
+        const treesPerHa = Math.round(treesPer100m2 * 100);
+
+        document.getElementById('outputTreesPerHa').innerText = treesPerHa.toLocaleString();
+
+        const badge = document.getElementById('judgeBadge');
+        if (treesPerHa >= 3000) {
+            badge.className = "judge-badge";
+            badge.innerText = "✅ 更新基準達成（3,000本/ha以上）";
+        } else {
+            badge.className = "judge-badge ng";
+            badge.innerText = "⚠️ 基準未満（3,000本/ha未満）";
+        }
+
+        document.getElementById('formulaBreakdown').innerHTML = `
+            <strong>【計算内訳】</strong><br>
+            ・100m²あたりの高木性被覆面積 (D):<br>
+             ${B} m² × ${C}% ＝ <strong>${D.toFixed(1)} m² / 100m²</strong><br>
+            ・100m²あたりの高木性本数:<br>
+             ${D.toFixed(1)} m² ÷ ${A} m²/本 ＝ <strong>${treesPer100m2.toFixed(1)} 本 / 100m²</strong><br>
+            ・1ha（10,000m²）あたり換算:<br>
+             ${treesPer100m2.toFixed(1)} 本 × 100 ＝ <strong>${treesPerHa.toLocaleString()} 本 / ha</strong>
+        `;
+    }
+</script>
+
+</body>
+</html>
