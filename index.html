@@ -36,7 +36,7 @@
             display: flex; align-items: center; gap: 6px; background: #f8f9fa;
             padding: 4px 10px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px; font-weight: bold;
         }
-        input[type="text"], input[type="password"], input[type="number"] {
+        select, input[type="text"], input[type="password"], input[type="number"] {
             padding: 5px 8px; font-size: 13px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit;
         }
         button {
@@ -57,7 +57,7 @@
         }
         .btn-analyze:hover { background-color: #1f618d; }
 
-        /* メイン3カラムレイアウト（空撮カラムを広めに配分） */
+        /* メイン3カラムレイアウト */
         #main-container {
             display: flex; flex-grow: 1; overflow: hidden; flex-direction: row;
         }
@@ -85,7 +85,6 @@
             display: flex; justify-content: center; align-items: center; overflow: hidden;
             box-sizing: border-box; flex-shrink: 0;
         }
-        /* 空撮枠は横幅100%で大きく表示 */
         #aerialWrapper {
             min-height: 320px;
             padding: 0;
@@ -96,7 +95,6 @@
             display: none;
             cursor: crosshair;
         }
-        /* 林内写真枠 */
         #groundWrapper {
             height: 280px;
         }
@@ -220,7 +218,6 @@
                 border-bottom: none !important;
                 padding: 6px 0 !important;
             }
-            /* 2カラム目（林内写真）と3カラム目（更新判断）は新しいページから開始 */
             #col-ground, #col-judgment {
                 page-break-before: always !important;
                 break-before: page !important;
@@ -260,11 +257,20 @@
 
 <!-- ヘッダー -->
 <div id="controls">
-    <span class="app-title">🌱 天然更新 v0.3</span>
+    <span class="app-title">🌱 天然更新 v0.4</span>
     
     <div class="control-group">
         <span>🔑 APIキー:</span>
-        <input type="password" id="geminiApiKey" placeholder="Gemini APIキーを入力" style="width: 160px;">
+        <input type="password" id="geminiApiKey" placeholder="Gemini APIキーを入力" style="width: 150px;">
+    </div>
+
+    <div class="control-group">
+        <span>🧠 思考レベル:</span>
+        <select id="thinkingLevelSelect">
+            <option value="LOW">Low (高速・省エネ)</option>
+            <option value="MEDIUM" selected>Medium (推奨バランス)</option>
+            <option value="HIGH">High (高精度・標準)</option>
+        </select>
     </div>
 
     <div class="control-group">
@@ -348,6 +354,7 @@
         <label class="prompt-label">プロンプト（当地の植生等に合わせて手修正可）:</label>
         <textarea id="groundPrompt" class="prompt-input">この林内写真には基準尺となる測量ポール（赤白2m）が写っています。
 下層のシダ類や草本を除いた「高さ0.3m以上の木本植物全体」のうち、将来高木になる『高木性樹種』が占める割合（％）を推定してください（残りは低木性樹種とします）。
+※手前の枝葉が大きく写る遠近法の影響を補正し、画面上の見かけの面積ではなく、空間的な樹冠ボリュームと個体数の比率として高木性の割合を推定してください。
 
 【当地の植生メモ（手修正可）】
 ・高木性樹種の例：スギ、コナラ、ミズナラ、カエデ類、ホオノキ、ミズキ、ウワミズザクラ等
@@ -442,9 +449,9 @@
     });
 
     // ==========================================
-    // Gemini API 呼び出し共通基盤 (フォールバック付き)
+    // Gemini API 呼び出し共通基盤 (Hydrogen優先・フォールバック付き)
     // ==========================================
-    const MODEL_CANDIDATES = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-2.5-flash"];
+    const MODEL_CANDIDATES = ["gemini-4-hydrogen", "gemini-3.8-flash", "gemini-2.5-flash"];
 
     async function fetchWithTimeout(url, options, timeoutMs = 45000) {
         const controller = new AbortController();
@@ -458,14 +465,16 @@
 
     async function callGeminiWithFallback(apiKey, basePayload, onStatusUpdate) {
         let lastErrorMsg = "";
+        const selectedThinkingLevel = document.getElementById('thinkingLevelSelect')?.value || "MEDIUM";
+
         for (const modelName of MODEL_CANDIDATES) {
-            if (onStatusUpdate) onStatusUpdate(modelName);
-            const isGemini3 = modelName.startsWith("gemini-3");
+            if (onStatusUpdate) onStatusUpdate(`${modelName} (${selectedThinkingLevel})`);
+            const supportsThinking = modelName.startsWith("gemini-4") || modelName.startsWith("gemini-3");
             const payloadWithThinking = JSON.parse(JSON.stringify(basePayload));
-            if (isGemini3) {
+            if (supportsThinking) {
                 payloadWithThinking.generationConfig = {
                     ...(payloadWithThinking.generationConfig || {}),
-                    thinkingConfig: { thinkingLevel: "LOW" }
+                    thinkingConfig: { thinkingLevel: selectedThinkingLevel }
                 };
             }
             try {
@@ -475,7 +484,7 @@
                     45000
                 );
                 let data = await response.json();
-                if (data.error && response.status === 400 && isGemini3) {
+                if (data.error && response.status === 400 && supportsThinking) {
                     response = await fetchWithTimeout(
                         `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
                         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(basePayload) },
@@ -491,7 +500,7 @@
                     const parts = data.candidates[0].content.parts || [];
                     const answerPart = parts.find(p => typeof p.text === 'string' && !p.thought) || parts.find(p => typeof p.text === 'string');
                     if (answerPart) {
-                        return { text: answerPart.text, usedModel: modelName };
+                        return { text: answerPart.text, usedModel: `${modelName} [思考:${selectedThinkingLevel}]` };
                     }
                 }
             } catch (err) {
@@ -508,9 +517,8 @@
     const aerialCtx = aerialCanvas.getContext('2d');
     let aerialImg = null;
 
-    // ポール端点と10m枠の状態管理（すべて元画像のピクセル座標系で保持）
-    let polePoints = []; // [{x, y}, {x, y}]
-    let box10m = null;   // {x, y, size} ※x,yは左上座標、sizeは10m相当のピクセル数
+    let polePoints = [];
+    let box10m = null;
     let isDraggingBox = false;
     let dragOffset = { x: 0, y: 0 };
 
@@ -557,7 +565,6 @@
         }
     }
 
-    // クライアント座標から元画像ピクセル座標への変換
     function getCanvasCoordinates(e) {
         const rect = aerialCanvas.getBoundingClientRect();
         const scaleX = aerialCanvas.width / rect.width;
@@ -580,7 +587,6 @@
             updateAerialStatusBadge();
             drawAerialCanvas();
         } else if (box10m) {
-            // 10m枠内をクリックしたらドラッグ開始、枠外をクリックしたらその中心へ枠をジャンプ
             if (pt.x >= box10m.x && pt.x <= box10m.x + box10m.size &&
                 pt.y >= box10m.y && pt.y <= box10m.y + box10m.size) {
                 isDraggingBox = true;
@@ -629,15 +635,13 @@
         }
 
         const pxPerMeter = polePixelDist / poleMeters;
-        let boxSizePx = pxPerMeter * 10.0; // 10m四方のピクセルサイズ
+        let boxSizePx = pxPerMeter * 10.0;
 
-        // 画像短辺を超える場合は画像短辺に収める
         const maxSide = Math.min(aerialCanvas.width, aerialCanvas.height);
         if (boxSizePx > maxSide) {
             boxSizePx = maxSide;
         }
 
-        // ポールの中点付近を中心に10m枠を初期配置
         const centerX = (polePoints[0].x + polePoints[1].x) / 2;
         const centerY = (polePoints[0].y + polePoints[1].y) / 2;
 
@@ -655,7 +659,6 @@
 
         const lineScale = Math.max(1, aerialCanvas.width / 600);
 
-        // 10m四方枠の描画
         if (box10m) {
             aerialCtx.save();
             aerialCtx.fillStyle = 'rgba(231, 76, 60, 0.22)';
@@ -665,7 +668,6 @@
             aerialCtx.lineWidth = 3 * lineScale;
             aerialCtx.strokeRect(box10m.x, box10m.y, box10m.size, box10m.size);
 
-            // ラベル描画
             const fontSize = Math.round(16 * lineScale);
             aerialCtx.font = `bold ${fontSize}px sans-serif`;
             aerialCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -675,7 +677,6 @@
             aerialCtx.restore();
         }
 
-        // ポールの点・線の描画
         if (polePoints.length > 0) {
             aerialCtx.save();
             if (polePoints.length === 2) {
@@ -699,7 +700,6 @@
         }
     }
 
-    // 10m枠内（未指定時は全体）をBase64として切り出す
     function getCroppedAerialBase64() {
         const tempCanvas = document.createElement('canvas');
         const maxOutputSize = 1024;
@@ -864,19 +864,16 @@
     }
 
     // ==========================================
-    // 3. 更新判断の計算ロジック（基準本数の手入力対応）
+    // 3. 更新判断の計算ロジック
     // ==========================================
     function updateCalculation() {
-        const B = parseFloat(document.getElementById('inputWoodyCover').value) || 0; // m2 / 100m2
-        const C = parseFloat(document.getElementById('inputTallRatio').value) || 0;  // %
-        const A = parseFloat(document.getElementById('inputCrownArea').value) || 1;  // m2 / 本
-        const targetTrees = parseInt(document.getElementById('inputTargetTrees').value, 10) || 0; // 基準本数 (本/ha)
+        const B = parseFloat(document.getElementById('inputWoodyCover').value) || 0;
+        const C = parseFloat(document.getElementById('inputTallRatio').value) || 0;
+        const A = parseFloat(document.getElementById('inputCrownArea').value) || 1;
+        const targetTrees = parseInt(document.getElementById('inputTargetTrees').value, 10) || 0;
 
-        // 100m2あたりの高木性被覆面積 (D)
         const D = B * (C / 100.0);
-        // 100m2あたりの高木性本数
         const treesPer100m2 = A > 0 ? (D / A) : 0;
-        // 1ha (10,000m2) あたりの高木性本数
         const treesPerHa = Math.round(treesPer100m2 * 100);
 
         document.getElementById('outputTreesPerHa').innerText = treesPerHa.toLocaleString();
