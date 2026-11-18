@@ -257,7 +257,7 @@
 
 <!-- ヘッダー -->
 <div id="controls">
-    <span class="app-title">🌱 天然更新 v0.5</span>
+    <span class="app-title">🌱 天然更新 v0.6</span>
     
     <div class="control-group">
         <span>🔑 APIキー:</span>
@@ -327,7 +327,7 @@
 【出力形式】
 1. 空撮画像から読み取れる木本植物の分布状況と草本との判別根拠を簡潔に記述してください。
 2. 最後に必ず以下のJSON形式（100m2あたり換算値＝植被率％）を1行で出力してください。
-{"woody_cover_m2": 50}</textarea>
+{"woody_cover_m2": 30}</textarea>
 
         <div id="aerialResultArea" class="result-area">
             <div style="color: #7f8c8d; text-align: center; margin-top: 25px; font-size: 12px;">
@@ -371,7 +371,7 @@
 【出力形式】
 1. 写真内で確認できる主な樹種（葉の形状や樹形の特徴）、ポールと比較した樹高、高木性と低木性の優占状況を簡潔に記述してください。
 2. 最後に必ず以下のJSON形式を1行で出力してください。
-{"tall_tree_percent": 60}</textarea>
+{"tall_tree_percent": 50}</textarea>
 
         <div id="groundResultArea" class="result-area">
             <div style="color: #7f8c8d; text-align: center; margin-top: 25px; font-size: 12px;">
@@ -391,7 +391,7 @@
             <div class="calc-item">
                 <div class="calc-item-title">・空撮から木本被ふく (B)</div>
                 <div class="calc-input-row">
-                    <input type="number" id="inputWoodyCover" class="calc-input" value="50" min="0" max="100" step="1" oninput="updateCalculation()">
+                    <input type="number" id="inputWoodyCover" class="calc-input" value="30" min="0" max="100" step="1" oninput="updateCalculation()">
                     <span class="calc-unit">m² / 100m²</span>
                 </div>
                 <div class="calc-sub">※AI判読結果が自動反映されます（手修正可）</div>
@@ -401,7 +401,7 @@
             <div class="calc-item">
                 <div class="calc-item-title">・林内から高木性 (C)</div>
                 <div class="calc-input-row">
-                    <input type="number" id="inputTallRatio" class="calc-input" value="60" min="0" max="100" step="1" oninput="updateCalculation()">
+                    <input type="number" id="inputTallRatio" class="calc-input" value="50" min="0" max="100" step="1" oninput="updateCalculation()">
                     <span class="calc-unit">%</span>
                 </div>
                 <div class="calc-sub">※木本全体に占める高木性樹種の割合（手修正可）</div>
@@ -411,10 +411,10 @@
             <div class="calc-item">
                 <div class="calc-item-title">・1本当りの樹冠面積 (A)</div>
                 <div class="calc-input-row">
-                    <input type="number" id="inputCrownArea" class="calc-input" value="1" min="0.1" max="20" step="0.1" oninput="updateCalculation()">
+                    <input type="number" id="inputCrownArea" class="calc-input" value="0.5" min="0.1" max="20" step="0.1" oninput="updateCalculation()">
                     <span class="calc-unit">m² / 本</span>
                 </div>
-                <div class="calc-sub">※2mサイズ程度までの高木性1本当たりの基準面積</div>
+                <div class="calc-sub">※数年生の稚樹・幼樹（樹冠直径60〜80cm程度）の基準面積</div>
             </div>
 
             <!-- 項目4: 高木性の基準本数（手入力可） -->
@@ -432,7 +432,7 @@
         <div class="final-result-box">
             <div class="final-label">推定成立本数（高木性）</div>
             <div class="final-value-row">
-                <span id="outputTreesPerHa" class="final-number">3000</span>
+                <span id="outputTreesPerHa" class="final-number">3,000</span>
                 <span class="final-unit">本 / ha</span>
             </div>
             <div id="judgeBadge" class="judge-badge">✅ 更新基準達成（3,000本/ha以上）</div>
@@ -921,7 +921,7 @@
     function updateCalculation() {
         const B = parseFloat(document.getElementById('inputWoodyCover').value) || 0;
         const C = parseFloat(document.getElementById('inputTallRatio').value) || 0;
-        const A = parseFloat(document.getElementById('inputCrownArea').value) || 1;
+        const A = parseFloat(document.getElementById('inputCrownArea').value) || 0.5;
         const targetTrees = parseInt(document.getElementById('inputTargetTrees').value, 10) || 0;
 
         const D = B * (C / 100.0);
