@@ -25,19 +25,19 @@
 
         /* ヘッダーコントロール */
         #controls {
-            padding: 8px 16px; background: #fff; display: flex; gap: 12px;
+            padding: 8px 16px; background: #fff; display: flex; gap: 10px;
             align-items: center; z-index: 1000; border-bottom: 2px solid #27ae60;
             box-shadow: 0 2px 4px rgba(0,0,0,0.08); flex-shrink: 0; flex-wrap: wrap;
         }
         .app-title {
-            font-weight: bold; font-size: 18px; color: #27ae60; margin-right: 8px; white-space: nowrap;
+            font-weight: bold; font-size: 18px; color: #27ae60; margin-right: 4px; white-space: nowrap;
         }
         .control-group {
-            display: flex; align-items: center; gap: 6px; background: #f8f9fa;
+            display: flex; align-items: center; gap: 5px; background: #f8f9fa;
             padding: 4px 10px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px; font-weight: bold;
         }
         select, input[type="text"], input[type="password"], input[type="number"] {
-            padding: 5px 8px; font-size: 13px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit;
+            padding: 5px 6px; font-size: 13px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit;
         }
         button {
             padding: 6px 12px; font-size: 13px; background-color: #007bff; color: white;
@@ -186,7 +186,7 @@
             border-radius: 4px; border: 1px solid #dcedc8; line-height: 1.6; margin-bottom: 14px;
         }
 
-        /* 印刷・PDF用スタイル（1ページ目に見出し＋空撮が収まるよう最適化） */
+        /* 印刷・PDF用スタイル */
         @media print {
             @page { size: A4 portrait; margin: 10mm; }
             body {
@@ -257,11 +257,11 @@
 
 <!-- ヘッダー -->
 <div id="controls">
-    <span class="app-title">🌱 天然更新 v0.4</span>
+    <span class="app-title">🌱 天然更新 v0.5</span>
     
     <div class="control-group">
         <span>🔑 APIキー:</span>
-        <input type="password" id="geminiApiKey" placeholder="Gemini APIキーを入力" style="width: 150px;">
+        <input type="password" id="geminiApiKey" placeholder="Gemini APIキーを入力" style="width: 140px;">
     </div>
 
     <div class="control-group">
@@ -274,8 +274,16 @@
     </div>
 
     <div class="control-group">
-        <span>📏 空撮ポールの実長:</span>
-        <input type="number" id="poleLengthMeters" value="2.0" step="0.1" min="0.5" max="10" style="width: 55px; text-align: right;" onchange="recalcScaleAndRedraw()">
+        <span>📏 ポール実長:</span>
+        <input type="number" id="poleLengthMeters" value="2.0" step="0.1" min="0.5" max="10" style="width: 50px; text-align: right;" oninput="recalcScaleAndRedraw()">
+        <span>m</span>
+    </div>
+
+    <div class="control-group">
+        <span>📐 判定枠 (たて×よこ):</span>
+        <input type="number" id="boxHeightMeters" value="10" step="0.5" min="1" max="50" style="width: 48px; text-align: right;" oninput="onFrameSizeChange()">
+        <span>m ×</span>
+        <input type="number" id="boxWidthMeters" value="10" step="0.5" min="1" max="50" style="width: 48px; text-align: right;" oninput="onFrameSizeChange()">
         <span>m</span>
     </div>
 
@@ -296,34 +304,34 @@
             <button class="btn-green" onclick="document.getElementById('aerialFileInput').click()">📂 読み込み</button>
             <input type="file" id="aerialFileInput" accept="image/*" style="display: none;" onchange="handleAerialUpload(event)">
             <button class="btn-orange" onclick="resetPolePoints()" id="btnResetPole" disabled>🔄 ポール再指定</button>
-            <span style="font-size: 11px; color: #666;">※ポールの両端をクリック → 10m四方枠を表示（ドラッグで移動可）</span>
+            <span style="font-size: 11px; color: #666;">※ポールの両端をクリック → 判定枠を表示（ドラッグで移動可）</span>
         </div>
 
         <div class="canvas-wrapper" id="aerialWrapper">
             <div class="placeholder-text" id="aerialPlaceholder">
                 🛩️ 「読み込み」からドローン空撮写真を選択してください<br>
-                <span style="font-size: 11px; color: #95a5a6;">（読み込んだ後、地上のポールの両端2点をクリックすると10m四方の枠が表示されます）</span>
+                <span style="font-size: 11px; color: #95a5a6;">（読み込んだ後、地上のポールの両端2点をクリックすると指定サイズの判定枠が表示されます）</span>
             </div>
             <canvas id="aerialCanvas"></canvas>
         </div>
 
-        <button id="btnAnalyzeAerial" class="btn-analyze" onclick="analyzeAerial()" disabled>🤖 AI判読（10m四方枠内の木本被ふくを推定）</button>
+        <button id="btnAnalyzeAerial" class="btn-analyze" onclick="analyzeAerial()" disabled>🤖 AI判読（たて10m×よこ10m枠内の木本被ふくを推定）</button>
 
         <label class="prompt-label">プロンプト（当地の植生等に合わせて手修正可）:</label>
-        <textarea id="aerialPrompt" class="prompt-input">この画像は伐採跡地を真上から空撮し、10m×10m（面積100m2）の範囲を切り抜いたものです。
-地面・枯れ草・ササ・シダ類・草本を除き、「木本植物（高木・低木の稚樹や幼樹）」の樹冠が覆っている面積（m2 / 100m2あたり、すなわち植被率％）を推定してください。
+        <textarea id="aerialPrompt" class="prompt-input">この画像は伐採跡地を真上から空撮し、たて10m×よこ10m（面積100m2）の範囲を切り抜いたものです。
+地面・枯れ草・ササ・シダ類・草本を除き、「木本植物（高木・低木の稚樹や幼樹）」の樹冠が覆っている面積を、100m2あたりの面積（m2 / 100m2あたり、すなわち植被率％）として推定してください。
 
 【当地の植生メモ（手修正可）】
 ・スギ皆伐跡地、周辺の広葉樹（コナラ、カエデ類、ミズキ、キイチゴ類など）が侵入・更新中。
 
 【出力形式】
 1. 空撮画像から読み取れる木本植物の分布状況と草本との判別根拠を簡潔に記述してください。
-2. 最後に必ず以下のJSON形式を1行で出力してください。
+2. 最後に必ず以下のJSON形式（100m2あたり換算値＝植被率％）を1行で出力してください。
 {"woody_cover_m2": 50}</textarea>
 
         <div id="aerialResultArea" class="result-area">
             <div style="color: #7f8c8d; text-align: center; margin-top: 25px; font-size: 12px;">
-                空撮写真を読み込み、10m枠を配置して「AI判読」を押してください。
+                空撮写真を読み込み、判定枠を配置して「AI判読」を押してください。
             </div>
         </div>
     </div>
@@ -445,6 +453,7 @@
         if (savedKey) {
             document.getElementById('geminiApiKey').value = savedKey;
         }
+        updateFrameDimensionTexts();
         updateCalculation();
     });
 
@@ -511,16 +520,43 @@
     }
 
     // ==========================================
-    // 1. ドローン空撮 Canvas・10m四方枠の操作ロジック
+    // 1. ドローン空撮 Canvas・判定枠（たて×よこ）の操作ロジック
     // ==========================================
     const aerialCanvas = document.getElementById('aerialCanvas');
     const aerialCtx = aerialCanvas.getContext('2d');
     let aerialImg = null;
 
     let polePoints = [];
-    let box10m = null;
+    let boxRect = null; // { x, y, width, height, widthM, heightM, areaM2 }
     let isDraggingBox = false;
     let dragOffset = { x: 0, y: 0 };
+
+    function getFrameDimensions() {
+        const heightM = parseFloat(document.getElementById('boxHeightMeters').value) || 10;
+        const widthM = parseFloat(document.getElementById('boxWidthMeters').value) || 10;
+        const areaM2 = Math.round(heightM * widthM * 10) / 10;
+        return { heightM, widthM, areaM2 };
+    }
+
+    function onFrameSizeChange() {
+        updateFrameDimensionTexts();
+        recalcScaleAndRedraw();
+    }
+
+    // 枠の縦横サイズ変更時にボタン・プロンプト・バッジの表示を連動更新
+    function updateFrameDimensionTexts() {
+        const { heightM, widthM, areaM2 } = getFrameDimensions();
+        const btn = document.getElementById('btnAnalyzeAerial');
+        btn.innerText = `🤖 AI判読（たて${heightM}m×よこ${widthM}m枠内の木本被ふくを推定）`;
+
+        const promptEl = document.getElementById('aerialPrompt');
+        promptEl.value = promptEl.value.replace(
+            /(?:たて)?[0-9.]+m×(?:よこ)?[0-9.]+m（面積[0-9.]+m2）/,
+            `たて${heightM}m×よこ${widthM}m（面積${areaM2}m2）`
+        );
+
+        updateAerialStatusBadge();
+    }
 
     function handleAerialUpload(event) {
         const file = event.target.files[0];
@@ -546,7 +582,7 @@
 
     function resetPolePoints() {
         polePoints = [];
-        box10m = null;
+        boxRect = null;
         isDraggingBox = false;
         updateAerialStatusBadge();
         drawAerialCanvas();
@@ -554,14 +590,15 @@
 
     function updateAerialStatusBadge() {
         const badge = document.getElementById('aerialStatusBadge');
+        const { heightM, widthM } = getFrameDimensions();
         if (!aerialImg) {
             badge.innerText = "未読み込み";
         } else if (polePoints.length === 0) {
             badge.innerText = "① ポール始点をクリック";
         } else if (polePoints.length === 1) {
             badge.innerText = "② ポール終点をクリック";
-        } else if (box10m) {
-            badge.innerText = "✅ 10m枠表示中 (ドラッグで移動可)";
+        } else if (boxRect) {
+            badge.innerText = `✅ ${heightM}m×${widthM}m枠表示中 (ドラッグで移動可)`;
         }
     }
 
@@ -582,32 +619,32 @@
         if (polePoints.length < 2) {
             polePoints.push(pt);
             if (polePoints.length === 2) {
-                calculate10mBox();
+                calculateBox(true);
             }
             updateAerialStatusBadge();
             drawAerialCanvas();
-        } else if (box10m) {
-            if (pt.x >= box10m.x && pt.x <= box10m.x + box10m.size &&
-                pt.y >= box10m.y && pt.y <= box10m.y + box10m.size) {
+        } else if (boxRect) {
+            if (pt.x >= boxRect.x && pt.x <= boxRect.x + boxRect.width &&
+                pt.y >= boxRect.y && pt.y <= boxRect.y + boxRect.height) {
                 isDraggingBox = true;
-                dragOffset.x = pt.x - box10m.x;
-                dragOffset.y = pt.y - box10m.y;
+                dragOffset.x = pt.x - boxRect.x;
+                dragOffset.y = pt.y - boxRect.y;
             } else {
-                box10m.x = Math.max(0, Math.min(aerialCanvas.width - box10m.size, pt.x - box10m.size / 2));
-                box10m.y = Math.max(0, Math.min(aerialCanvas.height - box10m.size, pt.y - box10m.size / 2));
+                boxRect.x = Math.max(0, Math.min(aerialCanvas.width - boxRect.width, pt.x - boxRect.width / 2));
+                boxRect.y = Math.max(0, Math.min(aerialCanvas.height - boxRect.height, pt.y - boxRect.height / 2));
                 isDraggingBox = true;
-                dragOffset.x = box10m.size / 2;
-                dragOffset.y = box10m.size / 2;
+                dragOffset.x = boxRect.width / 2;
+                dragOffset.y = boxRect.height / 2;
                 drawAerialCanvas();
             }
         }
     });
 
     window.addEventListener('mousemove', (e) => {
-        if (!isDraggingBox || !box10m || !aerialImg) return;
+        if (!isDraggingBox || !boxRect || !aerialImg) return;
         const pt = getCanvasCoordinates(e);
-        box10m.x = Math.max(0, Math.min(aerialCanvas.width - box10m.size, pt.x - dragOffset.x));
-        box10m.y = Math.max(0, Math.min(aerialCanvas.height - box10m.size, pt.y - dragOffset.y));
+        boxRect.x = Math.max(0, Math.min(aerialCanvas.width - boxRect.width, pt.x - dragOffset.x));
+        boxRect.y = Math.max(0, Math.min(aerialCanvas.height - boxRect.height, pt.y - dragOffset.y));
         drawAerialCanvas();
     });
 
@@ -617,16 +654,17 @@
 
     function recalcScaleAndRedraw() {
         if (polePoints.length === 2) {
-            calculate10mBox();
+            calculateBox(false);
             drawAerialCanvas();
         }
     }
 
-    function calculate10mBox() {
+    function calculateBox(isInitialPlacement) {
         const dx = polePoints[1].x - polePoints[0].x;
         const dy = polePoints[1].y - polePoints[0].y;
         const polePixelDist = Math.hypot(dx, dy);
         const poleMeters = parseFloat(document.getElementById('poleLengthMeters').value) || 2.0;
+        const { heightM, widthM, areaM2 } = getFrameDimensions();
 
         if (polePixelDist < 3) {
             alert("ポールの2点が近すぎます。もう一度指定してください。");
@@ -635,20 +673,25 @@
         }
 
         const pxPerMeter = polePixelDist / poleMeters;
-        let boxSizePx = pxPerMeter * 10.0;
+        let boxWidthPx = Math.min(aerialCanvas.width, pxPerMeter * widthM);
+        let boxHeightPx = Math.min(aerialCanvas.height, pxPerMeter * heightM);
 
-        const maxSide = Math.min(aerialCanvas.width, aerialCanvas.height);
-        if (boxSizePx > maxSide) {
-            boxSizePx = maxSide;
+        // 既に枠が存在する場合は現在の中心座標を維持し、初回のみポール中点を中心に配置
+        let centerX = (polePoints[0].x + polePoints[1].x) / 2;
+        let centerY = (polePoints[0].y + polePoints[1].y) / 2;
+        if (!isInitialPlacement && boxRect) {
+            centerX = boxRect.x + boxRect.width / 2;
+            centerY = boxRect.y + boxRect.height / 2;
         }
 
-        const centerX = (polePoints[0].x + polePoints[1].x) / 2;
-        const centerY = (polePoints[0].y + polePoints[1].y) / 2;
-
-        box10m = {
-            size: boxSizePx,
-            x: Math.max(0, Math.min(aerialCanvas.width - boxSizePx, centerX - boxSizePx / 2)),
-            y: Math.max(0, Math.min(aerialCanvas.height - boxSizePx, centerY - boxSizePx / 2))
+        boxRect = {
+            width: boxWidthPx,
+            height: boxHeightPx,
+            widthM: widthM,
+            heightM: heightM,
+            areaM2: areaM2,
+            x: Math.max(0, Math.min(aerialCanvas.width - boxWidthPx, centerX - boxWidthPx / 2)),
+            y: Math.max(0, Math.min(aerialCanvas.height - boxHeightPx, centerY - boxHeightPx / 2))
         };
     }
 
@@ -659,21 +702,26 @@
 
         const lineScale = Math.max(1, aerialCanvas.width / 600);
 
-        if (box10m) {
+        if (boxRect) {
             aerialCtx.save();
             aerialCtx.fillStyle = 'rgba(231, 76, 60, 0.22)';
-            aerialCtx.fillRect(box10m.x, box10m.y, box10m.size, box10m.size);
+            aerialCtx.fillRect(boxRect.x, boxRect.y, boxRect.width, boxRect.height);
 
             aerialCtx.strokeStyle = '#ffeb3b';
             aerialCtx.lineWidth = 3 * lineScale;
-            aerialCtx.strokeRect(box10m.x, box10m.y, box10m.size, box10m.size);
+            aerialCtx.strokeRect(boxRect.x, boxRect.y, boxRect.width, boxRect.height);
 
-            const fontSize = Math.round(16 * lineScale);
+            const labelText = `たて${boxRect.heightM}m × よこ${boxRect.widthM}m (${boxRect.areaM2}m²)`;
+            const fontSize = Math.round(15 * lineScale);
             aerialCtx.font = `bold ${fontSize}px sans-serif`;
-            aerialCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            aerialCtx.fillRect(box10m.x, box10m.y, 130 * lineScale, 26 * lineScale);
+            const textMetrics = aerialCtx.measureText(labelText);
+            const bgWidth = textMetrics.width + 14 * lineScale;
+            const bgHeight = 26 * lineScale;
+
+            aerialCtx.fillStyle = 'rgba(0, 0, 0, 0.72)';
+            aerialCtx.fillRect(boxRect.x, boxRect.y, bgWidth, bgHeight);
             aerialCtx.fillStyle = '#ffeb3b';
-            aerialCtx.fillText('10m × 10m (100m²)', box10m.x + 6 * lineScale, box10m.y + 19 * lineScale);
+            aerialCtx.fillText(labelText, boxRect.x + 7 * lineScale, boxRect.y + 19 * lineScale);
             aerialCtx.restore();
         }
 
@@ -702,19 +750,21 @@
 
     function getCroppedAerialBase64() {
         const tempCanvas = document.createElement('canvas');
-        const maxOutputSize = 1024;
-        if (box10m) {
-            const outSize = Math.min(maxOutputSize, Math.round(box10m.size));
-            tempCanvas.width = outSize;
-            tempCanvas.height = outSize;
+        const maxOutputSide = 1024;
+        if (boxRect) {
+            const maxBoxSide = Math.max(boxRect.width, boxRect.height);
+            const scale = maxBoxSide > maxOutputSide ? (maxOutputSide / maxBoxSide) : 1;
+            tempCanvas.width = Math.max(1, Math.round(boxRect.width * scale));
+            tempCanvas.height = Math.max(1, Math.round(boxRect.height * scale));
             const ctx = tempCanvas.getContext('2d');
             ctx.drawImage(
                 aerialImg,
-                box10m.x, box10m.y, box10m.size, box10m.size,
-                0, 0, outSize, outSize
+                boxRect.x, boxRect.y, boxRect.width, boxRect.height,
+                0, 0, tempCanvas.width, tempCanvas.height
             );
         } else {
-            const scale = aerialImg.width > maxOutputSize ? (maxOutputSize / aerialImg.width) : 1;
+            const maxImgSide = Math.max(aerialImg.width, aerialImg.height);
+            const scale = maxImgSide > maxOutputSide ? (maxOutputSide / maxImgSide) : 1;
             tempCanvas.width = Math.round(aerialImg.width * scale);
             tempCanvas.height = Math.round(aerialImg.height * scale);
             const ctx = tempCanvas.getContext('2d');
@@ -763,6 +813,7 @@
 
         localStorage.setItem('gemini_api_key_forest', apiKey);
 
+        const { heightM, widthM, areaM2 } = getFrameDimensions();
         const promptText = document.getElementById('aerialPrompt').value.trim();
         const resultArea = document.getElementById('aerialResultArea');
         const btn = document.getElementById('btnAnalyzeAerial');
@@ -773,7 +824,7 @@
         let activeModel = "準備中";
         const updateTimer = () => {
             resultArea.innerHTML = `<div style="text-align:center; padding:15px; font-weight:bold; color:#2980b9;">
-                🤖 [${activeModel}] で空撮10m枠内を解析中... (${sec}秒)
+                🤖 [${activeModel}] で空撮枠内（${heightM}m×${widthM}m）を解析中... (${sec}秒)
             </div>`;
         };
         updateTimer();
@@ -796,10 +847,11 @@
                 updateCalculation();
             }
 
+            const actualFrameWoodyM2 = extractedVal !== null ? ((extractedVal * areaM2) / 100).toFixed(1) : null;
             const cleanMarkdown = res.text.replace(/\{[\s\S]*?"woody_cover_m2"[\s\S]*?\}/g, '').trim();
             resultArea.innerHTML = `
                 <span class="model-badge">使用モデル: ${res.usedModel}</span>
-                ${extractedVal !== null ? `<div style="font-weight:bold; color:#1b5e20; margin-bottom:6px;">👉 木本被ふく推定値: ${Math.round(extractedVal)} m² / 100m²（右欄へ反映済）</div>` : ''}
+                ${extractedVal !== null ? `<div style="font-weight:bold; color:#1b5e20; margin-bottom:6px;">👉 木本被ふく推定値: ${Math.round(extractedVal)} m² / 100m²（枠内 ${areaM2}m² 中 約${actualFrameWoodyM2}m²｜右欄へ反映済）</div>` : ''}
                 ${marked.parse(cleanMarkdown)}
             `;
         } catch (err) {
